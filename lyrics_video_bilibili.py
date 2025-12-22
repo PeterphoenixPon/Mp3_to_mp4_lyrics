@@ -151,7 +151,7 @@ def build_bilibili_filter_with_art_and_wave(bg_color, ass_path, album_art, wave_
     # This is 25x fewer pixels to process!
     filter_parts = [
         # Create blurred background - process at output resolution for speed
-        f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=40,format=yuva420p,colorchannelmixer=aa=0.4[bg_blur]",
+        f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=40,format=yuva420p,colorchannelmixer=aa=0.6[bg_blur]",
         
         # Overlay blurred background
         f"[0:v][bg_blur]overlay=0:0[bg]",
@@ -177,7 +177,7 @@ def build_bilibili_filter_with_art(bg_color, ass_path, album_art):
     """Build filter for Bilibili style with album art (no waveform) - OPTIMIZED"""
     filter_parts = [
         # Create blurred background at output resolution
-        f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=40,format=yuva420p,colorchannelmixer=aa=0.4[bg_blur]",
+        f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=40,format=yuva420p,colorchannelmixer=aa=0.6[bg_blur]",
         
         # Overlay blurred background
         f"[0:v][bg_blur]overlay=0:0[bg]",

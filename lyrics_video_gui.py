@@ -62,6 +62,8 @@ class LyricsVideoGUI:
         self.skip_video_var = tk.BooleanVar(value=False)
         self.use_cpu_var = tk.BooleanVar(value=False)
         self.debug_var = tk.BooleanVar(value=False)
+        self.use_existing_lrc_var = tk.BooleanVar(value=False)
+        self.existing_lrc_path = tk.StringVar()
         
         # Equalizer options
         self.enable_equalizer_var = tk.BooleanVar(value=False)
@@ -205,13 +207,25 @@ class LyricsVideoGUI:
         options_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
         
         ttk.Label(options_frame, text="✓ LRC file is always generated", 
-                 foreground="green").grid(row=0, column=0, sticky=tk.W, padx=5, pady=3)
+                 foreground="green").grid(row=0, column=0, columnspan=3, sticky=tk.W, padx=5, pady=3)
         ttk.Checkbutton(options_frame, text="Skip video creation (generate LRC only)", 
-                       variable=self.skip_video_var).grid(row=1, column=0, sticky=tk.W, padx=5, pady=3)
+                       variable=self.skip_video_var).grid(row=1, column=0, columnspan=3, sticky=tk.W, padx=5, pady=3)
         ttk.Checkbutton(options_frame, text="Use CPU instead of GPU", 
-                       variable=self.use_cpu_var).grid(row=2, column=0, sticky=tk.W, padx=5, pady=3)
+                       variable=self.use_cpu_var).grid(row=2, column=0, columnspan=3, sticky=tk.W, padx=5, pady=3)
         ttk.Checkbutton(options_frame, text="Debug mode (verbose output)", 
-                       variable=self.debug_var).grid(row=3, column=0, sticky=tk.W, padx=5, pady=3)
+                       variable=self.debug_var).grid(row=3, column=0, columnspan=3, sticky=tk.W, padx=5, pady=3)
+        
+        ttk.Separator(options_frame, orient='horizontal').grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
+        
+        # Use existing LRC
+        ttk.Checkbutton(options_frame, text="Use existing LRC file (skip Whisper sync)", 
+                       variable=self.use_existing_lrc_var, 
+                       command=self.toggle_lrc_mode).grid(row=5, column=0, columnspan=3, sticky=tk.W, padx=5, pady=3)
+        ttk.Label(options_frame, text="Existing LRC File:").grid(row=6, column=0, sticky=tk.W, padx=5, pady=5)
+        self.lrc_entry = ttk.Entry(options_frame, textvariable=self.existing_lrc_path, width=40, state='disabled')
+        self.lrc_entry.grid(row=6, column=1, padx=5, pady=5)
+        self.lrc_browse_btn = ttk.Button(options_frame, text="Browse...", command=self.browse_existing_lrc, state='disabled')
+        self.lrc_browse_btn.grid(row=6, column=2, pady=5)
         
     def create_visual_effects(self, parent):
         # Create a canvas with scrollbar for visual effects settings
@@ -328,6 +342,23 @@ class LyricsVideoGUI:
         )
         if filename:
             self.album_art_path.set(filename)
+    
+    def browse_existing_lrc(self):
+        filename = filedialog.askopenfilename(
+            title="Select Existing LRC File",
+            filetypes=[("LRC Files", "*.lrc"), ("All Files", "*.*")]
+        )
+        if filename:
+            self.existing_lrc_path.set(filename)
+    
+    def toggle_lrc_mode(self):
+        """Enable/disable LRC file input based on checkbox"""
+        if self.use_existing_lrc_var.get():
+            self.lrc_entry.config(state='normal')
+            self.lrc_browse_btn.config(state='normal')
+        else:
+            self.lrc_entry.config(state='disabled')
+            self.lrc_browse_btn.config(state='disabled')
     
     def create_advanced_settings(self, parent):
         # Create a canvas with scrollbar for advanced settings
@@ -491,6 +522,8 @@ class LyricsVideoGUI:
         self.skip_video_var.set(False)
         self.use_cpu_var.set(False)
         self.debug_var.set(False)
+        self.use_existing_lrc_var.set(False)
+        self.existing_lrc_path.set("")
         self.enable_equalizer_var.set(False)
         self.equalizer_position_var.set("bottom")
         self.equalizer_size_var.set(200)
@@ -714,6 +747,61 @@ class LyricsVideoGUI:
     def process_thread(self, cmd):
         """Run the processing in a separate thread"""
         try:
+            # If using existing LRC, skip the main script and go straight to video creation
+            if self.use_existing_lrc_var.get():
+                self.output_queue.put("Using existing LRC file, skipping Whisper sync...")
+                self.output_queue.put(f"LRC: {self.existing_lrc_path.get()}\n")
+                
+                # Determine target LRC path
+                import shutil
+                audio_stem = Path(self.audio_path.get()).stem
+                target_lrc = f"{audio_stem}_synced.lrc"
+                
+                # Only copy if source and destination are different
+                source_path = os.path.abspath(self.existing_lrc_path.get())
+                target_path = os.path.abspath(target_lrc)
+                
+                if source_path != target_path:
+                    shutil.copy(source_path, target_path)
+                    self.output_queue.put(f"✓ LRC file copied to {target_lrc}\n")
+                else:
+                    self.output_queue.put(f"✓ Using LRC file: {target_lrc}\n")
+                
+                # Go straight to video creation
+                if not self.skip_video_var.get():
+                    self.output_queue.put("\n" + "="*60)
+                    if self.video_style_var.get() == 'bilibili':
+                        self.output_queue.put("Creating Bilibili-style video...")
+                    else:
+                        self.output_queue.put("Creating video with effects...")
+                    self.output_queue.put("="*60 + "\n")
+                    
+                    wrapper_cmd = self.build_wrapper_command()
+                    
+                    wrapper_process = subprocess.Popen(
+                        wrapper_cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        bufsize=1,
+                        universal_newlines=True,
+                        encoding='utf-8',
+                        errors='replace'
+                    )
+                    
+                    for line in wrapper_process.stdout:
+                        self.output_queue.put(line.rstrip())
+                    
+                    wrapper_process.wait()
+                    
+                    if wrapper_process.returncode != 0:
+                        self.output_queue.put("ERROR")
+                        return
+                
+                self.output_queue.put("DONE")
+                return
+            
+            # Normal flow: run the main script first
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -782,16 +870,24 @@ class LyricsVideoGUI:
             messagebox.showerror("Error", "Please select an audio file")
             return
         
-        if not self.lyrics_path.get():
-            messagebox.showerror("Error", "Please select a lyrics file")
-            return
+        # If using existing LRC, validate that instead of lyrics file
+        if self.use_existing_lrc_var.get():
+            if not self.existing_lrc_path.get():
+                messagebox.showerror("Error", "Please select an existing LRC file")
+                return
+            if not os.path.exists(self.existing_lrc_path.get()):
+                messagebox.showerror("Error", "Existing LRC file does not exist")
+                return
+        else:
+            if not self.lyrics_path.get():
+                messagebox.showerror("Error", "Please select a lyrics file")
+                return
+            if not os.path.exists(self.lyrics_path.get()):
+                messagebox.showerror("Error", "Lyrics file does not exist")
+                return
         
         if not os.path.exists(self.audio_path.get()):
             messagebox.showerror("Error", "Audio file does not exist")
-            return
-        
-        if not os.path.exists(self.lyrics_path.get()):
-            messagebox.showerror("Error", "Lyrics file does not exist")
             return
         
         # Clear console
@@ -799,22 +895,28 @@ class LyricsVideoGUI:
         self.console.delete(1.0, tk.END)
         self.console.config(state='disabled')
         
-        # Build command
-        try:
-            cmd = self.build_command()
-            # Display command with proper quoting for readability
-            import shlex
-            cmd_display = ' '.join(shlex.quote(arg) for arg in cmd)
-            self.log_message(f"Command: {cmd_display}\n")
+        # Build command (only needed if not using existing LRC)
+        if not self.use_existing_lrc_var.get():
+            try:
+                cmd = self.build_command()
+                # Display command with proper quoting for readability
+                import shlex
+                cmd_display = ' '.join(shlex.quote(arg) for arg in cmd)
+                self.log_message(f"Command: {cmd_display}\n")
+                self.log_message("="*60)
+                self.log_message("Starting processing...")
+                self.log_message("="*60 + "\n")
+            except FileNotFoundError as e:
+                messagebox.showerror("Error", str(e))
+                return
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to build command: {str(e)}")
+                return
+        else:
+            cmd = None  # Will be handled differently in process_thread
             self.log_message("="*60)
-            self.log_message("Starting processing...")
+            self.log_message("Using existing LRC file - skipping Whisper")
             self.log_message("="*60 + "\n")
-        except FileNotFoundError as e:
-            messagebox.showerror("Error", str(e))
-            return
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to build command: {str(e)}")
-            return
         
         # Start progress bar
         self.progress.start()
