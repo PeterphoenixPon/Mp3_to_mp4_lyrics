@@ -1,0 +1,9 @@
+# Ignore video and audio outputs
+*.mp4
+*.mp3
+*.wav
+*.ass
+
+# Ignore Python cache
+__pycache__/
+*.pyc

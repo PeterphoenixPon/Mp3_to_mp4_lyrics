@@ -18,8 +18,8 @@ An independent graphical user interface (GUI) for the `lyrics_video_converter_tu
 
 1. Ensure you have Python 3.7+ installed
 2. Place these files in the same directory:
-   - `lyrics_video_converter_tunable.py` (your original script - use the FIXED version for paths with spaces)
-   - `lyrics_video_gui.py` (this GUI)
+   - `lyrics_video_converter_tunable.py` (script to add existing lyrics to mp4)
+   - `lyrics_video_gui.py` (Run this GUI)
    - `lyrics_video_wrapper.py` (handles visual effects)
 
 3. Install required packages (if not already installed):
