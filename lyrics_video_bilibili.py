@@ -157,13 +157,13 @@ def build_bilibili_filter_with_art_and_wave(bg_color, ass_path, album_art, wave_
         f"[0:v][bg_blur]overlay=0:0[bg]",
         
         # Prepare album art - simpler, no separate shadow pass
-        f"[1:v]scale=600:600:force_original_aspect_ratio=decrease,pad=600:600:(ow-iw)/2:(oh-ih)/2:color=#00000000[art]",
+        f"[1:v]scale=800:800:force_original_aspect_ratio=decrease,pad=800:800:(ow-iw)/2:(oh-ih)/2:color=#00000000[art]",
         
         # Create waveform visualization - use simpler mode
         f"[2:a]showwaves=s=800x{wave_height}:mode=line:colors={wave_color}:scale=lin:rate=25[wave]",
         
         # Composite everything
-        f"[bg][art]overlay=100:240[bg_with_art]",
+        f"[bg][art]overlay=100:140[bg_with_art]",
         f"[bg_with_art][wave]overlay=960:880[base]",
         
         # Add subtitles
