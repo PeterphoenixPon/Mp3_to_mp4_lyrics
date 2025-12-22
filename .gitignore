@@ -3,6 +3,8 @@
 *.mp3
 *.wav
 *.ass
+*.lrc
+*.txt
 
 # Ignore Python cache
 __pycache__/
