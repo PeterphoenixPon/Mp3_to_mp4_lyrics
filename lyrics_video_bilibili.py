@@ -151,7 +151,7 @@ def build_bilibili_filter_with_art_and_wave(bg_color, ass_path, album_art, wave_
     # This is 25x fewer pixels to process!
     filter_parts = [
         # Create blurred background - process at output resolution for speed
-        f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=40,format=yuva420p,colorchannelmixer=aa=0.3[bg_blur]",
+        f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=40,format=yuva420p,colorchannelmixer=aa=0.4[bg_blur]",
         
         # Overlay blurred background
         f"[0:v][bg_blur]overlay=0:0[bg]",
@@ -177,7 +177,7 @@ def build_bilibili_filter_with_art(bg_color, ass_path, album_art):
     """Build filter for Bilibili style with album art (no waveform) - OPTIMIZED"""
     filter_parts = [
         # Create blurred background at output resolution
-        f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=40,format=yuva420p,colorchannelmixer=aa=0.3[bg_blur]",
+        f"[1:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=40,format=yuva420p,colorchannelmixer=aa=0.4[bg_blur]",
         
         # Overlay blurred background
         f"[0:v][bg_blur]overlay=0:0[bg]",
@@ -246,7 +246,7 @@ def create_bilibili_ass_subtitle(lyrics_data, ass_path, text_color, title='', ar
             f.write(f"Dialogue: 1,0:00:00.00,{format_ass_time(lyrics_data[-1][0] + 5)},Title,,0,0,0,,{escape_ass(title)}\n")
         
         if artist:
-            f.write(f"Dialogue: 1,0:00:00.00,{format_ass_time(lyrics_data[-1][0] + 5)},Info,,0,0,0,,{{\\pos(1410,220)}}{escape_ass(f'演唱: {artist}')}\n")
+            f.write(f"Dialogue: 1,0:00:00.00,{format_ass_time(lyrics_data[-1][0] + 5)},Info,,0,0,0,,{escape_ass(f'Artist: {artist}')}\n")
         
         # Add lyrics with fade effects
         for i, (timestamp, lyric) in enumerate(lyrics_data):
