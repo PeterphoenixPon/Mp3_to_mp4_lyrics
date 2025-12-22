@@ -1,0 +1,7 @@
+flask>=2.3.0
+torch>=2.0.0
+openai-whisper>=20231117
+fuzzywuzzy>=0.18.0
+python-Levenshtein>=0.21.0
+numpy>=1.24.0
+Pillow>=10.0.0
